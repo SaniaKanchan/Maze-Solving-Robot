@@ -1,5 +1,5 @@
 from astar import astar, visualize_maze, path_to_commands, MAZE_TO_DROPOFF, MAZE_TO_LOADING
-from comms import transmit, receive, packetize,SOURCE
+from comms import transmit, receive, packetize, SOURCE
 import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
@@ -8,17 +8,18 @@ ROWS = len(MAZE_TO_LOADING)
 COLS = len(MAZE_TO_LOADING[0])
 
 if __name__ == "__main__":
-    #Make sure we are connected to SOURCE
+    # Make sure we are connected to SOURCE
     print(f"Source: {SOURCE}")
+    
     # ----------------------------------------------------------
-    # ALIGN TO WALL AND AND CENTER ON BOOT
+    # ALIGN TO WALL AND CENTER ON BOOT
     # ----------------------------------------------------------
     boot_and_align()    
     print("\nWall alignment and centering complete.\n")
+    
     # ----------------------------------------------------------
-    # Localize ROBOT with Random Movements
+    # LOCALIZE ROBOT
     # ----------------------------------------------------------
-    #INSERT LOCALIZATION CODE HERE 
     loc_x, loc_y, loc_orientation = run_manual_localization(
         MAZE_TO_DROPOFF, ROWS, COLS,
         transmit, receive, packetize,
@@ -29,15 +30,16 @@ if __name__ == "__main__":
     if loc_x is None:
         print("Localization failed or cancelled. Exiting.")
         exit()
+    
     # ----------------------------------------------------------
     # PATH PLANNING TO LOADING ZONE
     # ----------------------------------------------------------
     start_cell = (loc_x, loc_y)
     goal_cell = (0, 2)
-    start_orientation = loc_orientation  # Degrees: 0=right, 90=up, 180=left, 270=down
+    start_orientation = loc_orientation
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
-    print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
+    print(f"Goal (Loading Zone): (col={goal_cell[0]}, row={goal_cell[1]})")
 
     print("\nSearching for path with A*...")
     path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
@@ -49,36 +51,99 @@ if __name__ == "__main__":
         visualize_maze(path)
         cmds = path_to_commands(path, start_angle=start_orientation)
         print(cmds)
+        
+        execute_cmds_with_safety(cmds)
+        print("\n✓ Reached loading zone!")
+    else:
+        print("No path found to loading zone!")
+        exit()
+    
+    # ----------------------------------------------------------
+    # WAIT FOR BLOCK PICKUP COMMAND
+    # ----------------------------------------------------------
+    print("\n" + "="*60)
+    print("LOADING ZONE - Waiting for next action")
+    print("="*60)
+    print("Commands:")
+    print("  'block'   - Run block pickup sequence")
+    print("  'dropoff' - Skip pickup and go to dropoff")
+    
+    while True:
+        cmd = input("\n> ").strip().lower()
+        
+        if cmd == 'block':
+            print("\n" + "="*60)
+            print("BLOCK PICKUP SEQUENCE")
+            print("="*60)
+            
+            # ----------------------------------------------------------
+            # BLOCK PICKUP SEQUENCE
+            # TODO: Add your pickup commands here
+            # ----------------------------------------------------------
+            print("Block pickup sequence placeholder...")
+            print("(Add pickup commands when ready)")
+            
+            # After pickup, robot should be at some position
+            # Update these based on where pickup sequence ends
+            pickup_end_cell = (0, 0)
+            pickup_end_orientation = 0  # Update based on actual ending orientation
+            
+            print(f"\nBlock pickup complete!")
+            print(f"Position: (col={pickup_end_cell[0]}, row={pickup_end_cell[1]}), facing {pickup_end_orientation}°")
+            break
+            
+        elif cmd == 'dropoff':
+            print("\nSkipping block pickup, proceeding to dropoff...")
+            # Assume still at loading zone goal
+            pickup_end_cell = goal_cell
+            pickup_end_orientation = 0  # Adjust as needed
+            break
+            
+        else:
+            print(f"Unknown command: '{cmd}'")
+            print("Type 'block' or 'dropoff'")
+    
+    # ----------------------------------------------------------
+    # WAIT FOR DROPOFF NAVIGATION COMMAND
+    # ----------------------------------------------------------
+    print("\n" + "="*60)
+    print("Ready for dropoff navigation")
+    print("="*60)
+    print("Type 'run dropoff' to navigate to dropoff zone")
+    
+    while True:
+        cmd = input("\n> ").strip().lower()
+        
+        if cmd == 'run dropoff':
+            print("\nStarting navigation to dropoff zone...")
+            break
+        else:
+            print(f"Unknown command: '{cmd}'")
+            print("Type 'run dropoff' to continue")
+    
+    # ----------------------------------------------------------
+    # PATH PLANNING TO DROPOFF ZONE
+    # ----------------------------------------------------------
+    start_cell = (0,0) 
+    goal_cell = (0, 2) ## CHANGE TO GIVEN DROP OFF ZONE
+    start_orientation = 0  # Degrees: 0=right, 90=up, 180=left, 270=down
 
-    execute_cmds_with_safety(cmds)
-    print("\nAll commands executed.")
-    # ----------------------------------------------------------
-    # BLOCK PICKUP SEQUENCE ONCE IN LOADING ZONE, ENDS ALIGNED TO TOP
-    # ----------------------------------------------------------
-    #
-    # ----------------------------------------------------------
-    # PATH PLANNING TO LOADING ZONE
-    # ----------------------------------------------------------
-    # start_cell = (0,0) 
-    # goal_cell = (0, 2) ## CHANGE TO GIVEN DROP OFF ZONE
-    # start_orientation = 0  # Degrees: 0=right, 90=up, 180=left, 270=down
+    print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
+    print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
 
-    # print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
-    # print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
-
-    # print("\nSearching for path with A*...")
-    # path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
+    print("\nSearching for path with A*...")
+    path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
 
     # if path:
     #     print(f"✓ Path found! Length: {len(path)} cells")
     #     print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
 
-    #     visualize_maze(path)
-    #     cmds = path_to_commands(path, start_angle=start_orientation)
-    #     print(cmds)
+        visualize_maze(path)
+        cmds = path_to_commands(path, start_angle=start_orientation)
+        print(cmds)
     
-    # #remove one last drive command from cmds to for dropoff, and add dropoff command
-    # cmds = cmds[:-1]
-    # cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
-    # execute_cmds_with_safety(cmds)
-    # print("\nAll commands executed.")
+    #remove one last drive command from cmds to for dropoff, and add dropoff command
+    cmds = cmds[:-1]
+    cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
+    execute_cmds_with_safety(cmds)
+    print("\nAll commands executed.")

@@ -11,7 +11,6 @@ Returns: (x, y, orientation) or (None, None, None) if cancelled
 import time
 from localization_submodule import create_manual_localizer
 
-
 def run_manual_localization(maze, rows, cols, transmit_fn, receive_fn, packetize_fn, 
                             wall_thresh=6.0, min_dist=0.5):
     """
@@ -141,15 +140,21 @@ Commands:
                     transmit_fn(packet)
                     time.sleep(0.5)
                     resp, _ = receive_fn()
+                    
                     if resp and resp[0]:
                         print(f"Response: {resp}")
-                        try:
-                            inches = float(cmd.split(':')[1])
-                            localizer.record_move(inches)
-                        except (ValueError, IndexError):
-                            print("Warning: Could not parse distance")
+                        # Only record if command succeeded
+                        if len(resp[0]) >= 2 and resp[0][1] == 'True':
+                            try:
+                                inches = float(cmd.split(':')[1])
+                                localizer.record_move(inches)
+                                print("✓ Movement recorded")
+                            except (ValueError, IndexError):
+                                print("Warning: Could not parse distance")
+                        else:
+                            print("⚠ Command failed - movement NOT recorded")
                     else:
-                        print("No valid response")
+                        print("⚠ No valid response - movement NOT recorded")
                 else:
                     print("Invalid command format")
             
@@ -160,15 +165,21 @@ Commands:
                     transmit_fn(packet)
                     time.sleep(0.5)
                     resp, _ = receive_fn()
+                    
                     if resp and resp[0]:
                         print(f"Response: {resp}")
-                        try:
-                            degrees = float(cmd.split(':')[1])
-                            localizer.record_turn(degrees)
-                        except (ValueError, IndexError):
-                            print("Warning: Could not parse degrees")
+                        # Only record if command succeeded
+                        if len(resp[0]) >= 2 and resp[0][1] == 'True':
+                            try:
+                                degrees = float(cmd.split(':')[1])
+                                localizer.record_turn(degrees)
+                                print("✓ Turn recorded")
+                            except (ValueError, IndexError):
+                                print("Warning: Could not parse degrees")
+                        else:
+                            print("⚠ Command failed - turn NOT recorded")
                     else:
-                        print("No valid response")
+                        print("⚠ No valid response - turn NOT recorded")
                 else:
                     print("Invalid command format")
             
