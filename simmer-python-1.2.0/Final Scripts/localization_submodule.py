@@ -10,7 +10,6 @@ Method:
 4. Use movement and multiple readings to disambiguate between candidate positions
 5. Converge to the true position and orientation
 """
-
 import time
 
 
@@ -107,14 +106,28 @@ class LocalizationSystem:
             u4 = float(resp[4][1])  # right back
             u5 = float(resp[5][1])  # right front
             
+            # Use back sensors as primary, front as fallback
+            # Left side: prefer left back (u2), fallback to left front (u1)
+            left_dist = u2
+            if not (self.min_dist < left_dist < 20):  # Bad reading (too close or too far)
+                left_dist = u1
+                print(f"    Using left front sensor (back sensor out of range)")
+            
+            # Right side: prefer right back (u4), fallback to right front (u5)
+            right_dist = u4
+            if not (self.min_dist < right_dist < 20):  # Bad reading
+                right_dist = u5
+                print(f"    Using right front sensor (back sensor out of range)")
+            
             walls = {
                 'front': self.min_dist < u0 < self.wall_thresh,
-                'right': self.min_dist < (u4 + u5) / 2 < self.wall_thresh,
+                'right': self.min_dist < right_dist < self.wall_thresh,
                 'back': self.min_dist < u3 < self.wall_thresh,
-                'left': self.min_dist < (u1 + u2) / 2 < self.wall_thresh
+                'left': self.min_dist < left_dist < self.wall_thresh
             }
             
             print(f"  Distances: F={u0:.1f} R=({u4:.1f},{u5:.1f}) B={u3:.1f} L=({u1:.1f},{u2:.1f})")
+            print(f"  Using: L={left_dist:.1f} R={right_dist:.1f}")
             print(f"  Threshold: {self.wall_thresh}in | Min: {self.min_dist}in")
             wall_list = [d for d, v in walls.items() if v]
             print(f"  Walls detected: {wall_list if wall_list else 'none'}")
