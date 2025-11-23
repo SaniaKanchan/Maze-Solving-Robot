@@ -23,7 +23,7 @@ if __name__ == "__main__":
     loc_x, loc_y, loc_orientation = run_manual_localization(
         MAZE_TO_DROPOFF, ROWS, COLS,
         transmit, receive, packetize,
-        wall_thresh=8.0,
+        wall_thresh=6.0,
         min_dist=0.5
     )
     
@@ -124,26 +124,44 @@ if __name__ == "__main__":
     # ----------------------------------------------------------
     # PATH PLANNING TO DROPOFF ZONE
     # ----------------------------------------------------------
-    start_cell = (0,0) 
-    goal_cell = (0, 2) ## CHANGE TO GIVEN DROP OFF ZONE
-    start_orientation = 0  # Degrees: 0=right, 90=up, 180=left, 270=down
+    print("\n" + "="*60)
+    print("NAVIGATION TO DROPOFF ZONE")
+    print("="*60)
+    
+    start_cell = pickup_end_cell
+    goal_cell = (0, 2)  ## CHANGE TO GIVEN DROP OFF ZONE
+    start_orientation = pickup_end_orientation
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
-    print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
+    print(f"Goal (Dropoff): (col={goal_cell[0]}, row={goal_cell[1]})")
 
     print("\nSearching for path with A*...")
-    path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
+    path = astar(start_cell, goal_cell, maze=MAZE_TO_DROPOFF)
 
-    # if path:
-    #     print(f"✓ Path found! Length: {len(path)} cells")
-    #     print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
+    if path:
+        print(f"✓ Path found! Length: {len(path)} cells")
+        print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
 
         visualize_maze(path)
         cmds = path_to_commands(path, start_angle=start_orientation)
-        print(cmds)
+        print(f"Commands: {cmds}")
+        
+        if cmds:
+            # Execute navigation commands (no 'bd' removal for now)
+            execute_cmds_with_safety(cmds)
+            print("\n✓ Navigation to dropoff zone complete!")
+        else:
+            print("Already at dropoff location - no movement needed")
+        
+        # TODO: Add block drop command here when implemented
+        # Example: execute_block_drop() or execute_cmds_with_safety(['bd'])
+        print("\n⚠ Block drop not implemented yet")
+        print("   (Add block drop functionality here)")
+        
+    else:
+        print("No path found to dropoff!")
+        exit()
     
-    #remove one last drive command from cmds to for dropoff, and add dropoff command
-    cmds = cmds[:-1]
-    cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
-    execute_cmds_with_safety(cmds)
-    print("\nAll commands executed.")
+    print("\n" + "="*60)
+    print("MISSION COMPLETE!")
+    print("="*60)
