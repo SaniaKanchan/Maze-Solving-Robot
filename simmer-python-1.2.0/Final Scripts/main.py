@@ -1,8 +1,18 @@
 from astar import astar, visualize_maze, path_to_commands, MAZE_TO_DROPOFF, MAZE_TO_LOADING
-from comms import SOURCE
+from comms import transmit, receive, packetize,SOURCE
 import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
+from localization_interface import run_manual_localization
 
+# Maze configuration
+MAZE = [
+    [0, 0, 0, 0, 1, 0, 1, 0],  # row 0
+    [0, 0, 1, 0, 0, 0, 0, 0],  # row 1
+    [0, 1, 0, 1, 1, 0, 1, 0],  # row 2
+    [0, 0, 0, 0, 0, 0, 1, 0]   # row 3
+]
+ROWS = len(MAZE)
+COLS = len(MAZE[0])
 
 if __name__ == "__main__":
     #Make sure we are connected to SOURCE
@@ -16,12 +26,22 @@ if __name__ == "__main__":
     # Localize ROBOT with Random Movements
     # ----------------------------------------------------------
     #INSERT LOCALIZATION CODE HERE 
+    loc_x, loc_y, loc_orientation = run_manual_localization(
+        MAZE, ROWS, COLS,
+        transmit, receive, packetize,
+        wall_thresh=6.0,
+        min_dist=0.5
+    )
+    
+    if loc_x is None:
+        print("Localization failed or cancelled. Exiting.")
+        exit()
     # ----------------------------------------------------------
     # PATH PLANNING TO LOADING ZONE
     # ----------------------------------------------------------
-    start_cell = (7, 3)
+    start_cell = (loc_x, loc_y)
     goal_cell = (0, 2)
-    start_orientation = 270  # Degrees: 0=right, 90=up, 180=left, 270=down
+    start_orientation = loc_orientation  # Degrees: 0=right, 90=up, 180=left, 270=down
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
     print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
