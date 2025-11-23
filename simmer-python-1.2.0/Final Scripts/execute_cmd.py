@@ -1,6 +1,6 @@
-from avoidance import wallalign, bootwallalign, center_to_front_wall, drive_adjustment, SOURCE
+from avoidance import wallalign, bootwallalign, center_to_front_wall, drive_adjustment, back_sensor_adjustment,SOURCE
 from comms import transmit, receive, packetize
-from astar import astar, visualize_maze, path_to_commands
+from astar import astar, visualize_maze, path_to_commands, MAZE_TO_LOADING
 import time
 
 
@@ -9,7 +9,7 @@ def boot_and_align():
     Then move backwards until front sensor reads ~2.5 inches"""
     center_dist = 3.0
     threshold = 0.5
-    wall_threshold = 7.0
+    wall_threshold = 10
     centered = False
     print("\n--- Boot wall alignment sequence ---")
     bootwallalign()
@@ -22,8 +22,8 @@ def boot_and_align():
     back_dist = float(responses[2][1])
     right_dist = float(responses[3][1])
     #rotate to the open side if wall is in the front or if the back distance is larger than the front
-    if front_dist < wall_threshold or front_dist < back_dist:
-        if back_dist > wall_threshold:
+    if front_dist < wall_threshold:
+        if back_dist > wall_threshold and back_dist > front_dist:
             print("Rotating 180 to find open space")
             cmd = "r0:180"  # rotate 180    
         elif left_dist > right_dist:
@@ -42,6 +42,8 @@ def boot_and_align():
             check_resp, _ = receive()
             if check_resp[0][1] == 'True':
                 break
+        wallalign()
+        
     # Move backwards until 2.5 in from wall
     while not centered:
         packet = packetize("u3")
@@ -53,6 +55,7 @@ def boot_and_align():
             cmd = "w0:-3"  # move backward
             transmit(packetize(cmd))
             responses, _ = receive()
+            wallalign()
             # wait for command to complete
             while True:
                 packet_check = packetize('w0')
@@ -139,7 +142,17 @@ def execute_cmds_with_safety(cmds):
             if 0.5 < front_dist < 10:
                 center_to_front_wall()
             else:
-                print("→ No front wall detected (<0.5 or >10 in), skip centering")
+                print("No block in front, center using back walls")
+                back_sensor_adjustment()
+
+        # ---------------- PRE-DRIVE ADJUSTMENT (ONCE PER DRIVE COMMAND) ----------------
+        # Run drive_adjustment BEFORE entering the command loop for drive commands
+        drive_adjustment_done = False
+        if cmd.startswith("w0:"):
+            print("\n--- Pre-drive adjustment ---")
+            drive_adjustment()
+            drive_adjustment_done = True
+            print("✓ Drive adjustment complete\n")
 
         # ---------------- WAIT FOR DRIVE SYSTEM ----------------
         command_sent = False
@@ -150,13 +163,7 @@ def execute_cmds_with_safety(cmds):
             status = responses[0][1]
 
             if status == 'True':
-                # Pre-drive adjustment ONLY for forward moves
-                if cmd.startswith("w0:"):
-                    print("\n--- Pre-drive adjustment ---")
-                    drive_adjustment()
-                    print("✓ Drive adjustment complete\n")
-
-                # Send actual command
+                # Send actual command (drive_adjustment already done above)
                 packet_cmd = packetize(cmd)
                 transmit(packet_cmd)
                 responses, _ = receive()
@@ -193,3 +200,23 @@ def execute_cmds_with_safety(cmds):
 # test boot_and_align
 if __name__ == "__main__":
     boot_and_align()
+    
+    start_cell = (7, 3)
+    goal_cell = (0, 2)
+    start_orientation = 270  # Degrees: 0=right, 90=down, 180=left, 270=up
+
+    print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
+    print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
+
+    print("\nSearching for path with A*...")
+    path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
+
+    if path:
+        print(f"✓ Path found! Length: {len(path)} cells")
+        print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
+
+        visualize_maze(path)
+        cmds = path_to_commands(path, start_angle=start_orientation)
+        print(cmds)
+    execute_cmds_with_safety(cmds)
+    print("\nAll commands executed.")
