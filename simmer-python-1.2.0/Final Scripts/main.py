@@ -22,7 +22,7 @@ if __name__ == "__main__":
     loc_x, loc_y, loc_orientation = run_manual_localization(
         MAZE_TO_DROPOFF, ROWS, COLS,
         transmit, receive, packetize,
-        wall_thresh=6.0,
+        wall_thresh=8.0,
         min_dist=0.5
     )
     
@@ -59,26 +59,26 @@ if __name__ == "__main__":
     # ----------------------------------------------------------
     # PATH PLANNING TO LOADING ZONE
     # ----------------------------------------------------------
-    start_cell = (0,0) 
-    goal_cell = (0, 2) ## CHANGE TO GIVEN DROP OFF ZONE
-    start_orientation = 0  # Degrees: 0=right, 90=up, 180=left, 270=down
+    # start_cell = (0,0) 
+    # goal_cell = (0, 2) ## CHANGE TO GIVEN DROP OFF ZONE
+    # start_orientation = 0  # Degrees: 0=right, 90=up, 180=left, 270=down
 
-    print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
-    print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
+    # print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
+    # print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
 
-    print("\nSearching for path with A*...")
-    path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
+    # print("\nSearching for path with A*...")
+    # path = astar(start_cell, goal_cell, maze=MAZE_TO_LOADING)
 
-    if path:
-        print(f"✓ Path found! Length: {len(path)} cells")
-        print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
+    # if path:
+    #     print(f"✓ Path found! Length: {len(path)} cells")
+    #     print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
 
-        visualize_maze(path)
-        cmds = path_to_commands(path, start_angle=start_orientation)
-        print(cmds)
+    #     visualize_maze(path)
+    #     cmds = path_to_commands(path, start_angle=start_orientation)
+    #     print(cmds)
     
-    #remove one last drive command from cmds to for dropoff, and add dropoff command
-    cmds = cmds[:-1]
-    cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
-    execute_cmds_with_safety(cmds)
-    print("\nAll commands executed.")
+    # #remove one last drive command from cmds to for dropoff, and add dropoff command
+    # cmds = cmds[:-1]
+    # cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
+    # execute_cmds_with_safety(cmds)
+    # print("\nAll commands executed.")

@@ -128,7 +128,7 @@ def bootwallalign():
         packet = packetize(cmd)
         transmit(packet)
         responses = receive()
-        time.sleep(0.2)
+        time.sleep(0.5)
     
     return True
 
@@ -137,7 +137,7 @@ def wallalign():
     Will NOT align if either side has differential < 0.6 inches"""
     align_threshold = 0.1
     distance_threshold = 6.0
-    misalignment_threshold = 0.4  # Only align if difference > 0.6 inch
+    misalignment_threshold = 0.3  # Only align if difference > 0.6 inch
     aligned = False
     adjust_angle = 8  # degrees per adjustment step
     
@@ -229,7 +229,7 @@ def wallalign():
             packet = packetize(cmd)
             transmit(packet)
             responses = receive()
-            time.sleep(0.1)
+            time.sleep(0.5)
             continue
         
         # === RIGHT SIDE ALIGNMENT ===
@@ -320,7 +320,7 @@ def drive_adjustment():
     
     return
 
-def center_to_front_wall(target_distance=4.3, tolerance=0.8, max_attempts=20):
+def center_to_front_wall(target_distance=4.5, tolerance=0.5, max_attempts=20):
     """
     Center robot to front wall at specified distance.
     
@@ -360,9 +360,9 @@ def center_to_front_wall(target_distance=4.3, tolerance=0.8, max_attempts=20):
         if ready_resp[0][1] == 'True':
             # Move forward or backward based on error
             if error > tolerance:
-                # Too far, move forward 1 inch
-                move_cmd = packetize("w0:1")
-                print(f"  → Moving forward 1in")
+                # Too far, move forward 0.5 inch
+                move_cmd = packetize("w0:0.5")
+                print(f"  → Moving forward 0.5in")
             elif error < -tolerance:
                 # Too close, move backward 1 inch
                 move_cmd = packetize("w0:-1")
@@ -387,7 +387,100 @@ def center_to_front_wall(target_distance=4.3, tolerance=0.8, max_attempts=20):
     print(f"⚠ Centering timeout after {max_attempts} attempts")
     return False
 
+def back_sensor_adjustment():
+    """
+    Adjust robot position based on back sensor (u3) reading.
+    Centers robot to either 14 or 26 inches from back wall.
+    
+    Targets:
+        - If u3 is within 11-17 inches → center to 14 inches
+        - If u3 is within 23-29 inches → center to 26 inches
+    
+    Tolerance: 0.5 inches
+    """
+    target_14 = 14.0
+    target_26 = 26.0
+    tolerance = 0.5
+    max_attempts = 20
+    
+    # Read back sensor
+    packet = packetize("u3")
+    transmit(packet)
+    responses, _ = receive()
+    u3_dist = float(responses[0][1])
+    
+    print(f"Back sensor (u3): {u3_dist:.2f}in")
+    
+    # Determine if adjustment is needed and which target
+    target = None
+    
+    if target_14 - 6 <= u3_dist <= target_14 + 6:
+        target = target_14
+        print(f"→ Back sensor in 14-inch range ({u3_dist:.2f}in), centering to {target}in")
+    elif target_26 - 6 <= u3_dist <= target_26 + 10:
+        target = target_26
+        print(f"→ Back sensor in 26-inch range ({u3_dist:.2f}in), centering to {target}in")
+    else:
+        print(f"✓ Back sensor outside adjustment ranges - no centering needed")
+        return False
+    
+    # Perform centering
+    attempts = 0
+    
+    while attempts < max_attempts:
+        # Read current back distance
+        packet = packetize("u3")
+        transmit(packet)
+        responses, _ = receive()
+        current_back = float(responses[0][1])
+        
+        error = current_back - target
+        
+        print(f"  Attempt {attempts + 1}: Back={current_back:.2f}in | Target={target:.2f}in | Error={error:+.2f}in")
+        
+        # Check if centered
+        if abs(error) < tolerance:
+            print(f"✓ Centered to {target}in (current: {current_back:.2f}in)")
+            return True
+        
+        # Wait for robot to be ready
+        packet_ready = packetize('w0')
+        transmit(packet_ready)
+        ready_resp, _ = receive()
+        
+        if ready_resp[0][1] == 'True':
+            # Move forward or backward based on error
+            # Positive error = too far from wall = move backward
+            # Negative error = too close to wall = move forward
+            if error > tolerance:
+                # Too far, move backward 1 inch
+                move_cmd = packetize("w0:-1")
+                print(f"  → Moving backward 1in")
+            elif error < -tolerance:
+                # Too close, move forward 0.5 inch
+                move_cmd = packetize("w0:0.5")
+                print(f"  → Moving forward 0.5in")
+            
+            transmit(move_cmd)
+            move_resp, _ = receive()
+            
+            # Wait for movement to complete
+            while True:
+                packet_check = packetize('w0')
+                transmit(packet_check)
+                check_resp, _ = receive()
+                if check_resp[0][1] == 'True':
+                    break
+                time.sleep(0.1)
+            
+            time.sleep(0.2)  # Small buffer after completion
+        
+        attempts += 1
+    
+    print(f"⚠ Back sensor centering timeout after {max_attempts} attempts")
+    return False
 
 if __name__ == "__main__":
     print ("Testing wall alignment function")
     bootwallalign()
+    
