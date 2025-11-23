@@ -4,15 +4,8 @@ import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
 
-# Maze configuration
-MAZE = [
-    [0, 0, 0, 0, 1, 0, 1, 0],  # row 0
-    [0, 0, 1, 0, 0, 0, 0, 0],  # row 1
-    [0, 1, 0, 1, 1, 0, 1, 0],  # row 2
-    [0, 0, 0, 0, 0, 0, 1, 0]   # row 3
-]
-ROWS = len(MAZE)
-COLS = len(MAZE[0])
+ROWS = len(MAZE_TO_LOADING)
+COLS = len(MAZE_TO_LOADING[0])
 
 if __name__ == "__main__":
     #Make sure we are connected to SOURCE
@@ -27,7 +20,7 @@ if __name__ == "__main__":
     # ----------------------------------------------------------
     #INSERT LOCALIZATION CODE HERE 
     loc_x, loc_y, loc_orientation = run_manual_localization(
-        MAZE, ROWS, COLS,
+        MAZE_TO_DROPOFF, ROWS, COLS,
         transmit, receive, packetize,
         wall_thresh=6.0,
         min_dist=0.5
