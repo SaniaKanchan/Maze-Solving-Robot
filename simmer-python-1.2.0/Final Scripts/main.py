@@ -85,34 +85,9 @@ if __name__ == "__main__":
             
             print("Block pickup sequence complete!")
             
-            # ----------------------------------------------------------
-            # RE-ORIENT AND RELOCALIZE AFTER PICKUP
-            # ----------------------------------------------------------
-            print("\n" + "="*60)
-            print("RE-ORIENTATION AND RELOCALIZATION")
-            print("="*60)
-            print("Robot needs to relocalize after block pickup")
-            print("Running boot and align sequence...")
-            
-            boot_and_align()
-            print("\nWall alignment complete.")
-            
-            # Relocalize
-            print("\nStarting relocalization...")
-            pickup_x, pickup_y, pickup_orientation = run_manual_localization(
-                MAZE_TO_DROPOFF, ROWS, COLS,
-                transmit, receive, packetize,
-                wall_thresh=6.0,
-                min_dist=0.5
-            )
-            
-            if pickup_x is None:
-                print("ERROR: Relocalization failed after pickup! Exiting.")
-                exit()
-            
             # Use relocalized position
-            pickup_end_cell = (pickup_x, pickup_y)
-            pickup_end_orientation = pickup_orientation
+            pickup_end_cell = (0, 0)
+            pickup_end_orientation = 0
             
             print(f"\nBlock pickup complete!")
             print(f"Position: (col={pickup_end_cell[0]}, row={pickup_end_cell[1]}), facing {pickup_end_orientation}°")
