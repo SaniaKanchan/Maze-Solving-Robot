@@ -6,6 +6,18 @@ from avoidance import wallalign, bootwallalign, center_to_front_wall
 # ============================================================
 #  SECTION 3 – ROBOT HELPERS (MODIFIED)
 # ============================================================
+def wait_until_ready():
+    """Poll w0 until the drive controller reports True."""
+    while True:
+        pkt = packetize("w0")
+        transmit(pkt)
+        resp, _ = receive()
+        try:
+            if resp[0][1] == "True":
+                break
+        except:
+            pass
+        time.sleep(0.1)
 
 def send_drive(cmd: str) -> bool:
     pkt = packetize(cmd)
@@ -90,7 +102,7 @@ def face_north(rotate):
     print(f"[FACE NORTH] Stepping to 0 from {current_heading:.0f}°")
     
     target_angle = 0.0
-    step_size = 6 # Enforced 6 degree step
+    step_size = 5 # Enforced 5 degree step
     
     # Standard stable stepping loop (prevents oscillation)
     while abs(target_angle - current_heading) > 0.5:
@@ -113,7 +125,7 @@ def go_to_top_wall(rotate, read_u0, drive_forward):
     while True:
         d = read_u0()
         if d is None: d = 999
-        if d <= 8:
+        if d <= 7:
             break
         drive_forward(1)
         time.sleep(0.1)
@@ -133,8 +145,8 @@ def go_to_top_wall(rotate, read_u0, drive_forward):
 def bump_scan_dual(start_angle, end_angle, rotate, read_u0, read_ub, step_size=10):
     global current_heading
     STEP = step_size # Use the passed step size (defaults to 10)
-    DIFF_THRESHOLD = 6.0
-    MAX_RELIABLE_DIST = 25.0 
+    DIFF_THRESHOLD = 5
+    MAX_BOT_DIST = 12.0  # ub must be less than 10 inches
     
     # Direction of scan
     step_val = STEP if end_angle >= start_angle else -STEP
@@ -142,7 +154,7 @@ def bump_scan_dual(start_angle, end_angle, rotate, read_u0, read_ub, step_size=1
     print(f"\n=== BUMP SCAN {start_angle:.0f}° -> {end_angle:.0f}° (Step: {step_size}) ===")
 
     # 1. NAVIGATE TO START ANGLE (INCREMENTAL)
-    # UPDATE: This now uses a loop to ensure even the setup turn is stepped by 10
+    # UPDATE: This now uses a loop to ensure even the setup turn is stepped by 8
     target_angle = start_angle
     print(f"[SAFE ROTATE] Stepping to Start: {current_heading:.0f}° -> {target_angle:.0f}°")
 
@@ -153,12 +165,10 @@ def bump_scan_dual(start_angle, end_angle, rotate, read_u0, read_ub, step_size=1
         else:
             step = diff
         rotate(step)
-    
-    # Added sleep to ensure robot settles at start angle before scanning
-    time.sleep(0.6)
+        wait_until_ready() # Ensure robot is ready before next step
     
     # Force-sample to clear old data
-    read_u0(); time.sleep(0.05)
+    read_u0(); time.sleep(0.1)
     read_u0()
 
     # 2. SCAN LOOP
@@ -177,9 +187,10 @@ def bump_scan_dual(start_angle, end_angle, rotate, read_u0, read_ub, step_size=1
 
         if top_d is None: top_d = 999
         if bot_d is None: bot_d = 999
-        diff = abs(top_d - bot_d)
+        diff = top_d - bot_d  # Changed to directional difference (u0 - ub)
 
-        if top_d < MAX_RELIABLE_DIST and bot_d < MAX_RELIABLE_DIST and diff >= DIFF_THRESHOLD:
+        # New condition: u0 > ub by at least 6, and ub < 10
+        if 0.1 <bot_d < MAX_BOT_DIST and diff >= DIFF_THRESHOLD:
             print(f"[SCAN] {current_heading:4.0f}° | u0={top_d:6.2f} | ub={bot_d:6.2f} | diff={diff:6.2f} *HIT*")
             hit_angles.append(current_heading)
             consecutive_misses = 0 
@@ -222,7 +233,7 @@ def drive_to_pickup(block_angle, rotate, read_ub, read_u0, drive_forward, transm
     # 1. ROTATE TO BLOCK (INCREMENTAL)
     # -------------------------------------------------
     target_angle = block_angle
-    step_size = 10
+    step_size = 9
     
     print(f"[DRIVE] Stepping to Block: {current_heading:.0f}° -> {target_angle:.0f}°")
 
@@ -250,7 +261,7 @@ def drive_to_pickup(block_angle, rotate, read_ub, read_u0, drive_forward, transm
         print(f"[DRIVE] ub={ub:.1f}, u0={u0:.1f}, diff={diff:.1f}")
 
         # SUCCESS
-        if ub <= 1.5:
+        if ub <= 1.1:
             print(">>> ARRIVED AT BLOCK.")
             break
 
@@ -307,16 +318,18 @@ def drive_to_pickup(block_angle, rotate, read_ub, read_u0, drive_forward, transm
     return True
 
 # UPDATE: Added scan_step parameter to fix the crash
-def mini_scan(rotate, read_u0, read_ub, drive_forward, transmit, start_angle=-10, end_angle=25, scan_step=10):
+def mini_scan(rotate, read_u0, read_ub, drive_forward, transmit, start_angle=-20, end_angle=35, scan_step=10):
     global current_heading
     print(f"\n=== MINI SCAN ({start_angle:.0f} to {end_angle:.0f}) ===")
-    
+    #first move forward 4in to get better readings
+    drive_forward(2)
     # Pass the scan_step to bump_scan_dual
     angle, _ = bump_scan_dual(start_angle, end_angle, rotate, read_u0, read_ub, step_size=scan_step)
 
     if angle is False:
         print("MINI SCAN -> No block -> Resetting N")
         face_north(rotate)
+        wallalign()
         return False
 
     print(f"MINI SCAN -> Found at {angle:.2f}°")
@@ -327,13 +340,14 @@ def full_scan(rotate, read_u0, read_ub, drive_forward, transmit):
     global current_heading
 
     start_angle = -20
-    end_angle = 100
+    end_angle = 120
 
     while True:
         print("\n=== FULL SCAN ===")
 
         # For full scan, starting at a known zero is helpful
         face_north(rotate)
+        wallalign()
         
         # Added sleep to ensure "reset to 0" completes before "rotate to -30" is sent
         time.sleep(0.5)
@@ -364,11 +378,10 @@ def ilz(rotate, read_u0, read_ub, drive_forward, transmit):
         return True
 
     # Align before the long drive
-    wallalign()
-    time.sleep(1) 
+    wallalign() 
     
-    drive_forward(12)
-    time.sleep(5)
+    drive_forward(9)
+    time.sleep(3)
 
     # FULL SCAN LOOP
     while True:
@@ -408,6 +421,9 @@ def block_scan_pickup():
         if cmd == "ilz":
             ilz(rotate, read_u0, read_ub, drive_forward, transmit)
             continue
+        if cmd == "bd":
+            send_drive("bd")
+            continue
 
         # Raw Commands
         pkt = packetize(cmd)
@@ -422,4 +438,3 @@ def block_scan_pickup():
         
 if __name__ == "__main__":
     block_scan_pickup()
-    go_to_top_wall(rotate, read_u0, drive_forward)

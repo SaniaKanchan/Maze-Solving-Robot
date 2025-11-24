@@ -2,6 +2,7 @@ from astar import astar, visualize_maze, path_to_commands, MAZE_TO_DROPOFF, MAZE
 from comms import transmit, receive, packetize, SOURCE
 from block_pickup import block_scan_pickup, go_to_top_wall, rotate, read_u0, drive_forward
 import time
+from avoidance import wallalign
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
 from automated_localization import auto_localize
@@ -18,7 +19,9 @@ if __name__ == "__main__":
     # ----------------------------------------------------------
     # ALIGN TO WALL AND CENTER ON BOOT
     # ----------------------------------------------------------
-    boot_and_align()    
+    boot_and_align()  
+    wallalign()
+    
     print("\nWall alignment and centering complete.\n")
     
     # ----------------------------------------------------------

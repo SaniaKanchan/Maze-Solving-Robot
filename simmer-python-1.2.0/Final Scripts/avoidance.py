@@ -11,8 +11,8 @@ def bootwallalign():
     then aligns to that wall. Run once when rover is placed in maze.
     """
     align_threshold = 0.1
-    distance_threshold = 8.0
-    max_search_rotations = 72  # Max 720° search (72 x 10° = 720°)
+    distance_threshold = 6.0
+    max_search_rotations = 36  # Max 360° search (36 x 10° = 360°)
     rotation_count = 0
     aligned = False
     wall_found = False
@@ -229,7 +229,7 @@ def wallalign():
             packet = packetize(cmd)
             transmit(packet)
             responses = receive()
-            time.sleep(1)
+            time.sleep(0.3)
             continue
         
         # === RIGHT SIDE ALIGNMENT ===
@@ -253,7 +253,7 @@ def wallalign():
             packet = packetize(cmd)
             transmit(packet)
             responses = receive()
-            time.sleep(1)
+            time.sleep(0.3)
             continue
     
     print("Wall alignment complete")
@@ -414,10 +414,10 @@ def back_sensor_adjustment():
     # Determine if adjustment is needed and which target
     target = None
     
-    if target_14 - 6 <= u3_dist <= target_14 + 6:
+    if target_14 - 3 <= u3_dist <= target_14 + 3:
         target = target_14
         print(f"→ Back sensor in 14-inch range ({u3_dist:.2f}in), centering to {target}in")
-    elif target_26 - 6 <= u3_dist <= target_26 + 10:
+    elif target_26 - 3 <= u3_dist <= target_26 + 10:
         target = target_26
         print(f"→ Back sensor in 26-inch range ({u3_dist:.2f}in), centering to {target}in")
     else:
