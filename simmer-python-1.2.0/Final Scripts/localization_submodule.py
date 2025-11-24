@@ -370,40 +370,50 @@ class ManualTrackingLocalizer(LocalizationSystem):
         super().__init__(*args, **kwargs)
         self.candidate_history = []
         self.movement_history = []
+        self.accumulated_distance = 0  # Track partial cell movements
     
     def reset_history(self):
         """Clear all tracking history."""
         self.candidate_history = []
         self.movement_history = []
+        self.accumulated_distance = 0
         print("Movement history cleared")
     
     def record_move(self, inches):
         """
         Record a forward/backward movement. Call this after w0 command completes.
-        Supports negative values for backward movement.
+        Accumulates sub-cell movements until reaching 12 inches (1 cell).
         
         Args:
             inches: Distance moved (positive=forward, negative=backward)
         
         Examples:
-            w0:12  → forward 1 cell
-            w0:-12 → backward 1 cell
-            w0:24  → forward 2 cells
-            w0:6   → forward 0 cells (sub-cell, not tracked)
+            w0:3  + w0:3  + w0:6  → accumulates to 12", then updates 1 cell
+            w0:12 → immediate 1 cell update
+            w0:24 → immediate 2 cell update
         """
-        self.movement_history.append(('move', inches))
+        # Add to accumulated distance
+        self.accumulated_distance += inches
         
-        # Determine direction and number of cells
-        is_backward = inches < 0
-        abs_inches = abs(inches)
-        cells_moved = int(abs_inches // self.cell_size)
+        # Calculate how many full cells we've moved
+        cells_moved = int(self.accumulated_distance // self.cell_size)
         
         if cells_moved == 0:
-            print(f"  Recorded: move {inches:+.0f}\" (sub-cell, no grid update)")
+            print(f"  Recorded: move {inches:+.0f}\" (accumulated: {self.accumulated_distance:.0f}\", waiting for 12\")")
             return
         
+        # We've moved at least one full cell - process it
+        is_backward = self.accumulated_distance < 0
+        abs_cells = abs(cells_moved)
+        
+        # Store this cell movement in history (only once per full cell)
+        self.movement_history.append(('move', cells_moved * self.cell_size))
+        
+        # Update remaining accumulation
+        self.accumulated_distance = self.accumulated_distance % self.cell_size
+        
         # Update all existing candidate sets for each cell moved
-        for cell in range(cells_moved):
+        for cell in range(abs_cells):
             new_history = []
             for cset in self.candidate_history:
                 new_set = set()
@@ -424,7 +434,7 @@ class ManualTrackingLocalizer(LocalizationSystem):
             self.candidate_history = new_history
         
         direction = "backward" if is_backward else "forward"
-        print(f"  Recorded: move {inches:+.0f}\" ({cells_moved} cell(s) {direction})")
+        print(f"  Recorded: move {inches:+.0f}\" → {abs_cells} cell(s) {direction} (remaining: {self.accumulated_distance:.0f}\")")
     
     def record_turn(self, degrees):
         """
@@ -453,7 +463,11 @@ class ManualTrackingLocalizer(LocalizationSystem):
             tuple: (x, y, orientation) if unique, or list of candidates
         """
         print("\n--- Quick Localization (with history) ---")
-        print(f"Movement history: {len(self.movement_history)} moves recorded")
+        
+        # Show movement tracking status
+        cell_movements = len([m for m in self.movement_history if m[0] == 'move'])
+        turns = len([m for m in self.movement_history if m[0] == 'turn'])
+        print(f"Cell movements: {cell_movements} | Turns: {turns} | Accumulated: {self.accumulated_distance:.0f}\"")
         
         # Read current sensors
         walls = self.read_sensors()
@@ -464,8 +478,29 @@ class ManualTrackingLocalizer(LocalizationSystem):
         matches = self.find_matches(walls)
         print(f"Current reading matches {len(matches)} positions")
         
-        # Add to history
+        # CRITICAL: Only update localization if we've completed a full cell movement
+        if self.accumulated_distance > 0:
+            # We're mid-cell - DON'T update candidates at all
+            print(f"→ Mid-cell (accumulated: {self.accumulated_distance:.0f}\"/12\") - sensors shown but NOT updating localization")
+            print(f"   Complete the cell movement (need {12 - self.accumulated_distance:.0f}\" more) before localization updates")
+            
+            # Show current candidates WITHOUT updating them
+            if len(self.candidate_history) > 0:
+                common = self.candidate_history[0]
+                for cset in self.candidate_history[1:]:
+                    common = common.intersection(cset)
+                print(f"   Current candidates (unchanged): {len(common)} positions")
+                if len(common) <= 10:
+                    for x, y, o in common:
+                        print(f"     ({x}, {y}) facing {o}° {self.directions[o]}")
+            else:
+                print(f"   No localization data yet - take a reading at cell boundary first")
+            
+            return list(common) if len(self.candidate_history) > 0 else None
+        
+        # We're at a cell boundary - safe to update localization
         self.candidate_history.append(set(matches))
+        print(f"→ At cell boundary - added to history")
         
         # Intersect all candidate sets
         if len(self.candidate_history) == 1:
@@ -501,10 +536,12 @@ class ManualTrackingLocalizer(LocalizationSystem):
         """Print current tracking status."""
         print(f"\n--- Localization Status ---")
         print(f"Sensor readings taken: {len(self.candidate_history)}")
-        print(f"Movements recorded: {len(self.movement_history)}")
+        print(f"Cell movements recorded: {len([m for m in self.movement_history if m[0] == 'move'])}")
+        print(f"Turns recorded: {len([m for m in self.movement_history if m[0] == 'turn'])}")
+        print(f"Accumulated distance: {self.accumulated_distance:.0f}\" (need {self.cell_size}\" for next cell)")
         
         if self.movement_history:
-            print("Movement sequence:")
+            print("\nMovement sequence:")
             total_cells = 0
             for i, (mtype, val) in enumerate(self.movement_history):
                 if mtype == 'move':
