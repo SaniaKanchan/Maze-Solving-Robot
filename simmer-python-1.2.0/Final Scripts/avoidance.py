@@ -132,22 +132,25 @@ def bootwallalign():
     
     return True
 
-def wallalign():
+def wallalign(): 
     """Wall align used in between drive commands - prioritizes the side that is more aligned
     Will NOT align if either side has differential < 0.4 inches"""
+    
     align_threshold = 0.2
     distance_threshold = 5.0
     misalignment_threshold = 0.4  # Only align if difference > 0.4 inch
-    aligned = False
     adjust_angle = 5  # degrees per adjustment step
+    
+    max_attempts = 4       # ← NEW
+    attempts = 0           # ← NEW
+    
+    aligned = False
     
     # Get ultrasonic readings for u1, u2, u4, u5
     cmd = 'u1,u2,u4,u5'
     packet = packetize(cmd)
     transmit(packet)
     [responses, time_rx] = receive()
-    
-    #print(f'Responses: {responses}')  # debug
     
     # Parse distances
     u1_dist = float(responses[0][1])
@@ -161,25 +164,24 @@ def wallalign():
     left_both_see_wall = (u1_dist < distance_threshold) and (u2_dist < distance_threshold)
     right_both_see_wall = (u4_dist < distance_threshold) and (u5_dist < distance_threshold)
     
-    # If NO side has both sensors seeing a wall, we're done - continue straight
+    # If NO side sees a wall, nothing to align
     if not left_both_see_wall and not right_both_see_wall:
         print("No walls detected on either side - continuing straight")
         return
     
-    # Calculate differences for walls that are detected
+    # Calculate differences
     left_diff = abs(u1_dist - u2_dist) if left_both_see_wall else float('inf')
     right_diff = abs(u4_dist - u5_dist) if right_both_see_wall else float('inf')
     
-    # NEW CHECK: If either side that sees a wall has diff < 0.6, don't align at all
+    # Skip if already aligned enough
     if left_both_see_wall and left_diff < misalignment_threshold:
         print(f"Wall alignment skipped - left side well aligned (diff: {left_diff:.2f}in < {misalignment_threshold}in)")
         return
-    
     if right_both_see_wall and right_diff < misalignment_threshold:
         print(f"Wall alignment skipped - right side well aligned (diff: {right_diff:.2f}in < {misalignment_threshold}in)")
         return
     
-    # Check if alignment is needed based on misalignment threshold
+    # Determine whether alignment is needed
     left_needs_align = left_both_see_wall and (left_diff > misalignment_threshold)
     right_needs_align = right_both_see_wall and (right_diff > misalignment_threshold)
     
@@ -187,7 +189,7 @@ def wallalign():
         print(f"Wall alignment not needed (L diff: {left_diff:.2f}in, R diff: {right_diff:.2f}in)")
         return
     
-    # Determine which side to align to (prefer the side with SMALLER difference = more aligned)
+    # Choose which wall to align to (prefer the more aligned one)
     align_to_left = left_needs_align and (not right_needs_align or left_diff <= right_diff)
     
     if align_to_left:
@@ -195,9 +197,14 @@ def wallalign():
     else:
         print(f"Aligning to right wall (diff: {right_diff:.2f}in)")
     
-    # Perform alignment
-    while not aligned:
-        # Get fresh readings
+    # =========================================================
+    #  ALIGNMENT LOOP — NOW LIMITED TO 4 ATTEMPTS
+    # =========================================================
+    while not aligned and attempts < max_attempts:
+        
+        attempts += 1  # ← count attempt
+        
+        # Fresh readings
         cmd = 'u1,u2,u4,u5'
         packet = packetize(cmd)
         transmit(packet)
@@ -208,7 +215,7 @@ def wallalign():
         u4_dist = float(responses[2][1])
         u5_dist = float(responses[3][1])
         
-        # === LEFT SIDE ALIGNMENT ===
+        # LEFT ALIGNMENT
         if align_to_left:
             left_diff = abs(u1_dist - u2_dist)
             
@@ -217,14 +224,11 @@ def wallalign():
                 aligned = True
                 break
             
-            #print(f"Adjusting left alignment (diff: {left_diff:.2f}in)")
-            
+            # Decide direction
             if u1_dist > u2_dist:
-                # u1 (front) is farther from wall - turn CCW (negative)
-                cmd = f'r0:-{adjust_angle}'
+                cmd = f'r0:-{adjust_angle}'   # CCW
             else:
-                # u2 (rear) is farther from wall - turn CW (positive)
-                cmd = f'r0:{adjust_angle}'
+                cmd = f'r0:{adjust_angle}'    # CW
             
             packet = packetize(cmd)
             transmit(packet)
@@ -232,7 +236,7 @@ def wallalign():
             time.sleep(0.3)
             continue
         
-        # === RIGHT SIDE ALIGNMENT ===
+        # RIGHT ALIGNMENT
         else:
             right_diff = abs(u4_dist - u5_dist)
             
@@ -241,14 +245,11 @@ def wallalign():
                 aligned = True
                 break
             
-            #print(f"Adjusting right alignment (diff: {right_diff:.2f}in)")
-            
+            # Decide direction
             if u5_dist > u4_dist:
-                # u5 (front) is farther from wall - turn CW (positive)
-                cmd = f'r0:{adjust_angle}'
+                cmd = f'r0:{adjust_angle}'     # CW
             else:
-                # u4 (rear) is farther from wall - turn CCW (negative)
-                cmd = f'r0:-{adjust_angle}'
+                cmd = f'r0:-{adjust_angle}'    # CCW
             
             packet = packetize(cmd)
             transmit(packet)
@@ -256,8 +257,17 @@ def wallalign():
             time.sleep(0.3)
             continue
     
-    print("Wall alignment complete")
+    # =========================================================
+    #  END OF ALIGNMENT ATTEMPTS
+    # =========================================================
+    
+    if attempts >= max_attempts and not aligned:
+        print(f"Wall alignment stopped after {attempts} attempts (NOT fully aligned).")
+    else:
+        print("Wall alignment complete")
+    
     return
+
 
 def drive_adjustment():
     """

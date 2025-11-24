@@ -178,7 +178,7 @@ if __name__ == "__main__":
     print("="*60)
     
     start_cell = pickup_end_cell  # Start from position after pickup
-    dropoff_cell = (5, 1)  ## CHANGE TO GIVEN DROP OFF ZONE
+    dropoff_cell = (2, 2)  ## CHANGE TO GIVEN DROP OFF ZONE
     start_orientation = pickup_end_orientation  # Use orientation after pickup
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
