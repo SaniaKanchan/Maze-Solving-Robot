@@ -111,7 +111,7 @@ def execute_cmds_with_safety(cmds):
         front_dist = float(responses[0][1])
 
         # ---------------- OBSTACLE DETECTION ----------------
-        if cmd.startswith("w0") and 0.5 < front_dist < 8:
+        if cmd.startswith("w0") and 0.5 < front_dist < 7:
             print("⚠ OBSTACLE DETECTED! Skipping forward commands...")
 
             # Center robot to front wall before rotation
