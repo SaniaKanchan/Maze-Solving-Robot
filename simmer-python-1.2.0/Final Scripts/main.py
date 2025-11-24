@@ -278,7 +278,9 @@ if __name__ == "__main__":
         print("🔽 BLOCK DROP SEQUENCE")
         print("="*60)
         
-        # Only execute the block drop command, not the whole path again
+        #remove one last drive command from cmds to for dropoff, and add dropoff command
+        #cmds = cmds[:-1]
+        #mds.append("bd")
         execute_cmds_with_safety(['bd'])
         
     else:

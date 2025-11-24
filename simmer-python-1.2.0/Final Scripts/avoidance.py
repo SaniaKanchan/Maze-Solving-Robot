@@ -11,7 +11,7 @@ def bootwallalign():
     then aligns to that wall. Run once when rover is placed in maze.
     """
     align_threshold = 0.1
-    distance_threshold = 6.0
+    distance_threshold = 5.0
     max_search_rotations = 36  # Max 360° search (36 x 10° = 360°)
     rotation_count = 0
     aligned = False
@@ -472,6 +472,8 @@ def back_sensor_adjustment():
                 if check_resp[0][1] == 'True':
                     break
                 time.sleep(0.1)
+            #realign after each adjustment
+            wallalign()
             
             time.sleep(0.2)  # Small buffer after completion
         

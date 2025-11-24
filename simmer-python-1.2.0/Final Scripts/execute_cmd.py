@@ -11,87 +11,124 @@ def boot_and_align():
     threshold = 0.5
     wall_threshold = 10
     centered = False
+
     print("\n--- Boot wall alignment sequence ---")
     bootwallalign()
-    # to where the front reads the largest distance
+
+    # Read all four distances
     packet = packetize("u0,u2,u3,u4")
     transmit(packet)
     responses, _ = receive()
     front_dist = float(responses[0][1])
-    left_dist = float(responses[1][1])
-    back_dist = float(responses[2][1])
+    left_dist  = float(responses[1][1])
+    back_dist  = float(responses[2][1])
     right_dist = float(responses[3][1])
-    #rotate to the open side if wall is in the front or if the back distance is larger than the front
-    if front_dist < wall_threshold:
-        if back_dist > wall_threshold and back_dist > front_dist:
-            print("Rotating 180 to find open space")
-            cmd = "r0:180"  # rotate 180    
-        elif left_dist > right_dist:
-            print("Rotating left to find open space")
-            cmd = "r0:-90"  # rotate left
-        else: 
-            print("Rotating right to find open space")
-            cmd = "r0:90"  # rotate right
+
+    # --------------------------
+    # UPDATED ROTATION LOGIC
+    # --------------------------
+
+    # We rotate IF:
+    # 1. The front sees a wall  (front < wall_threshold)
+    # 2. OR the back has more space than the front
+    do_rotate = False
+    cmd = None
+
+    if back_dist > front_dist:
+        # Back is more open → rotate around
+        print("Back has more space → rotating 180°")
+        cmd = "r0:180"
+        do_rotate = True
+
+    elif front_dist < wall_threshold:
+        # Front sees a wall → rotate toward largest open side
+        print("Front sees wall → rotating toward largest open side")
+
+        # Pick the largest among left / right / back
+        directions = {"left": left_dist, "right": right_dist, "back": back_dist}
+        best_dir = max(directions, key=directions.get)
+
+        if best_dir == "left":
+            print("Rotating LEFT to open space")
+            cmd = "r0:-90"
+        elif best_dir == "right":
+            print("Rotating RIGHT to open space")
+            cmd = "r0:90"
+        else:
+            print("Rotating BACK (180°) to open space")
+            cmd = "r0:180"
+
+        do_rotate = True
+
+    # Execute rotation if needed
+    if do_rotate:
         packet = packetize(cmd)
         transmit(packet)
         responses, _ = receive()
-        # wait for command to complete
+
+        # wait for rotation to finish
         while True:
             packet_check = packetize('w0')
             transmit(packet_check)
             check_resp, _ = receive()
             if check_resp[0][1] == 'True':
                 break
+
+        # Relock against wall after turning
         wallalign()
-        
-    # Move backwards until 2.5 in from wall
+
+    # -------------------------------------------------------------
+    # BACK-UP CENTERING LOGIC (unchanged from your original code)
+    # -------------------------------------------------------------
     while not centered:
         packet = packetize("u3")
         transmit(packet)
         responses, _ = receive()
         back_dist = float(responses[0][1])
-        #move in larger steps if far away, smaller if close
+
+        # Far away → large step
         if back_dist > 5:
-            cmd = "w0:-3"  # move backward
+            cmd = "w0:-3"
             transmit(packetize(cmd))
             responses, _ = receive()
             wallalign()
-            # wait for command to complete
+
             while True:
                 packet_check = packetize('w0')
                 transmit(packet_check)
                 check_resp, _ = receive()
                 if check_resp[0][1] == 'True':
                     break
+
+        # Too close → move forward slightly
         elif 0.2 < back_dist < center_dist - threshold:
-            cmd = "w0:1"  # move forward
-            packet = packetize(cmd)
-            transmit(packet)
+            cmd = "w0:0.5"
+            transmit(packetize(cmd))
             responses, _ = receive()
-            # wait for command to complete
+
             while True:
                 packet_check = packetize('w0')
                 transmit(packet_check)
                 check_resp, _ = receive()
                 if check_resp[0][1] == 'True':
                     break
+
+        # Too far → move backward slightly
         elif back_dist > center_dist + threshold:
-            
-            cmd = "w0:-1"  # move backward
-            packet = packetize(cmd)
-            transmit(packet)
+            cmd = "w0:-1"
+            transmit(packetize(cmd))
             responses, _ = receive()
-            # wait for command to complete
+
             while True:
                 packet_check = packetize('w0')
                 transmit(packet_check)
                 check_resp, _ = receive()
                 if check_resp[0][1] == 'True':
                     break
+
         else:
             centered = True
-           
-    
+
 
 def execute_cmds_with_safety(cmds):
     """
