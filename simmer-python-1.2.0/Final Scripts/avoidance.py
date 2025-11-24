@@ -10,7 +10,7 @@ def bootwallalign():
     Robust initial alignment - rotates until both sensors on one side detect a wall,
     then aligns to that wall. Run once when rover is placed in maze.
     """
-    align_threshold = 0.1
+    align_threshold = 0.15
     distance_threshold = 5.0
     max_search_rotations = 36  # Max 360° search (36 x 10° = 360°)
     rotation_count = 0
@@ -409,7 +409,7 @@ def back_sensor_adjustment():
     Tolerance: 0.5 inches
     """
     target_14 = 14.0
-    target_26 = 25.0
+    target_26 = 26.0
     tolerance = 0.5
     max_attempts = 20
     

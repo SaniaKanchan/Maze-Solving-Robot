@@ -127,8 +127,9 @@ def go_to_top_wall(rotate, read_u0, drive_forward):
         if d is None: d = 999
         if d <= 7:
             break
-        drive_forward(1)
-        time.sleep(0.1)
+        drive_forward(2)
+        time.sleep(0.5)
+        wallalign()
     center_to_front_wall()
     rotate(90) # Face East
 
@@ -233,7 +234,7 @@ def drive_to_pickup(block_angle, rotate, read_ub, read_u0, drive_forward, transm
     # 1. ROTATE TO BLOCK (INCREMENTAL)
     # -------------------------------------------------
     target_angle = block_angle
-    step_size = 9
+    step_size = 8
     
     print(f"[DRIVE] Stepping to Block: {current_heading:.0f}° -> {target_angle:.0f}°")
 
@@ -340,7 +341,7 @@ def full_scan(rotate, read_u0, read_ub, drive_forward, transmit):
     global current_heading
 
     start_angle = -20
-    end_angle = 120
+    end_angle = 100
 
     while True:
         print("\n=== FULL SCAN ===")
@@ -401,39 +402,8 @@ def ilz(rotate, read_u0, read_ub, drive_forward, transmit):
 # ============================================================
 
 def block_scan_pickup():
-    print(f"\n========== CLIENT ({SOURCE}) ==========\n")
-    
-    while True:
-        cmd = input("Type command (ilz / miniscan / fullscan / topwall / exit): ").strip()
+    ilz(rotate, read_u0, read_ub, drive_forward, transmit)
 
-        if cmd in ("exit", "quit"):
-            print("Exiting client...")
-            break
-
-        if cmd == "miniscan":
-            mini_scan(rotate, read_u0, read_ub, drive_forward, transmit)
-            continue
-
-        if cmd == "fullscan":
-            full_scan(rotate, read_u0, read_ub, drive_forward, transmit)
-            continue
-
-        if cmd == "ilz":
-            ilz(rotate, read_u0, read_ub, drive_forward, transmit)
-            continue
-        if cmd == "bd":
-            send_drive("bd")
-            continue
-
-        # Raw Commands
-        pkt = packetize(cmd)
-        if not pkt:
-            print("Invalid packet format.")
-            continue
-
-        transmit(pkt)
-        resp, ts = receive()
-        print(f"[{ts}] {resp}")
 
         
 if __name__ == "__main__":

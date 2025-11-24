@@ -45,9 +45,9 @@ frame_end = ']'
 round_digits = 3
 
 # Block information
-block_position = [66, 5]        # Block starting location
+block_position = [18, 18]        # Block starting location
 block_rotation = 0              # Block rotation (deg)
-block_size = 3                  # Block side length in inches
+block_size = 2                  # Block side length in inches
 
 # Robot information
 robot_start_position = [54, 18]  # Robot starting location (in)
@@ -183,7 +183,7 @@ u0_info = {  # Front middle
 
 ub_info = {  # BLOCK PICKUP SENSOR
     'id': 'u0',
-    'position': [0, front_sensor_offset-1],
+    'position': [0, 3],
     'height': 1,
     'rotation': 0,
     'error': 0.01,
