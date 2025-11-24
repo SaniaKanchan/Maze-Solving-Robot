@@ -1,5 +1,6 @@
 from astar import astar, visualize_maze, path_to_commands, MAZE_TO_DROPOFF, MAZE_TO_LOADING
 from comms import transmit, receive, packetize, SOURCE
+from block_pickup import block_scan_pickup, go_to_top_wall, rotate, read_u0, drive_forward
 import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
@@ -80,6 +81,8 @@ if __name__ == "__main__":
             # BLOCK PICKUP SEQUENCE
             # TODO: Add your pickup commands here
             # ----------------------------------------------------------
+            block_scan_pickup()
+    ````````go_to_top_wall(rotate, read_u0, drive_forward)
             print("Block pickup sequence placeholder...")
             print("(Add pickup commands when ready)")
             
