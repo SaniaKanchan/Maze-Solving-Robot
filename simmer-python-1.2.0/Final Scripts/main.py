@@ -1,6 +1,6 @@
 from astar import astar, visualize_maze, path_to_commands, MAZE_TO_DROPOFF, MAZE_TO_LOADING
 from comms import transmit, receive, packetize, SOURCE
-from block_pickup import block_scan_pickup, go_to_top_wall, rotate, read_u0, drive_forward
+#from block_pickup import block_scan_pickup, go_to_top_wall, rotate, read_u0, drive_forward
 import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # PATH PLANNING TO LOADING ZONE
     # ----------------------------------------------------------
     start_cell = (loc_x, loc_y)
-    goal_cell = (0, 0)
+    goal_cell = (0, 2)
     start_orientation = loc_orientation
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
@@ -79,17 +79,40 @@ if __name__ == "__main__":
             
             # ----------------------------------------------------------
             # BLOCK PICKUP SEQUENCE
-            # TODO: Add your pickup commands here
             # ----------------------------------------------------------
             block_scan_pickup()
-    ````````go_to_top_wall(rotate, read_u0, drive_forward)
-            print("Block pickup sequence placeholder...")
-            print("(Add pickup commands when ready)")
+            go_to_top_wall(rotate, read_u0, drive_forward)
             
-            # After pickup, robot should be at some position
-            # Update these based on where pickup sequence ends
-            pickup_end_cell = (0, 0)
-            pickup_end_orientation = 0  # Update based on actual ending orientation
+            print("Block pickup sequence complete!")
+            
+            # ----------------------------------------------------------
+            # RE-ORIENT AND RELOCALIZE AFTER PICKUP
+            # ----------------------------------------------------------
+            print("\n" + "="*60)
+            print("RE-ORIENTATION AND RELOCALIZATION")
+            print("="*60)
+            print("Robot needs to relocalize after block pickup")
+            print("Running boot and align sequence...")
+            
+            boot_and_align()
+            print("\nWall alignment complete.")
+            
+            # Relocalize
+            print("\nStarting relocalization...")
+            pickup_x, pickup_y, pickup_orientation = run_manual_localization(
+                MAZE_TO_DROPOFF, ROWS, COLS,
+                transmit, receive, packetize,
+                wall_thresh=6.0,
+                min_dist=0.5
+            )
+            
+            if pickup_x is None:
+                print("ERROR: Relocalization failed after pickup! Exiting.")
+                exit()
+            
+            # Use relocalized position
+            pickup_end_cell = (pickup_x, pickup_y)
+            pickup_end_orientation = pickup_orientation
             
             print(f"\nBlock pickup complete!")
             print(f"Position: (col={pickup_end_cell[0]}, row={pickup_end_cell[1]}), facing {pickup_end_orientation}°")
@@ -99,7 +122,7 @@ if __name__ == "__main__":
             print("\nSkipping block pickup, proceeding to dropoff...")
             # Assume still at loading zone goal
             pickup_end_cell = goal_cell
-            pickup_end_orientation = 0  # Adjust as needed
+            pickup_end_orientation = 270  # Adjust as needed
             break
             
         else:
@@ -131,15 +154,15 @@ if __name__ == "__main__":
     print("NAVIGATION TO DROPOFF ZONE")
     print("="*60)
     
-    start_cell = pickup_end_cell
-    goal_cell = (0, 2)  ## CHANGE TO GIVEN DROP OFF ZONE
-    start_orientation = pickup_end_orientation
+    start_cell = pickup_end_cell  # Start from position after pickup
+    dropoff_cell = (2, 2)  ## CHANGE TO GIVEN DROP OFF ZONE
+    start_orientation = pickup_end_orientation  # Use orientation after pickup
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
-    print(f"Goal (Dropoff): (col={goal_cell[0]}, row={goal_cell[1]})")
+    print(f"Goal (Dropoff): (col={dropoff_cell[0]}, row={dropoff_cell[1]})")
 
     print("\nSearching for path with A*...")
-    path = astar(start_cell, goal_cell, maze=MAZE_TO_DROPOFF)
+    path = astar(start_cell, dropoff_cell, maze=MAZE_TO_DROPOFF)
 
     if path:
         print(f"✓ Path found! Length: {len(path)} cells")
