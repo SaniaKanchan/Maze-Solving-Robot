@@ -207,9 +207,9 @@ if __name__ == "__main__":
         print("="*60)
         
         #remove one last drive command from cmds to for dropoff, and add dropoff command
-        cmds = cmds[:-1]
-        cmds.append("bd")
-        execute_cmds_with_safety(cmds)
+        #cmds = cmds[:-1]
+        #cmds.append("bd")
+        execute_cmds_with_safety(['bd'])
         
     else:
         print("No path found to dropoff!")

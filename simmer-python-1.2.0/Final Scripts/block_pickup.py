@@ -318,7 +318,7 @@ def drive_to_pickup(block_angle, rotate, read_ub, read_u0, drive_forward, transm
     return True
 
 # UPDATE: Added scan_step parameter to fix the crash
-def mini_scan(rotate, read_u0, read_ub, drive_forward, transmit, start_angle=-20, end_angle=35, scan_step=10):
+def mini_scan(rotate, read_u0, read_ub, drive_forward, transmit, start_angle=-20, end_angle=20, scan_step=10):
     global current_heading
     print(f"\n=== MINI SCAN ({start_angle:.0f} to {end_angle:.0f}) ===")
     #first move forward 4in to get better readings
