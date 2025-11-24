@@ -134,12 +134,12 @@ def bootwallalign():
 
 def wallalign():
     """Wall align used in between drive commands - prioritizes the side that is more aligned
-    Will NOT align if either side has differential < 0.6 inches"""
-    align_threshold = 0.1
-    distance_threshold = 6.0
-    misalignment_threshold = 0.3  # Only align if difference > 0.6 inch
+    Will NOT align if either side has differential < 0.4 inches"""
+    align_threshold = 0.2
+    distance_threshold = 5.0
+    misalignment_threshold = 0.4  # Only align if difference > 0.4 inch
     aligned = False
-    adjust_angle = 8  # degrees per adjustment step
+    adjust_angle = 5  # degrees per adjustment step
     
     # Get ultrasonic readings for u1, u2, u4, u5
     cmd = 'u1,u2,u4,u5'
@@ -229,7 +229,7 @@ def wallalign():
             packet = packetize(cmd)
             transmit(packet)
             responses = receive()
-            time.sleep(0.5)
+            time.sleep(1)
             continue
         
         # === RIGHT SIDE ALIGNMENT ===
@@ -253,7 +253,7 @@ def wallalign():
             packet = packetize(cmd)
             transmit(packet)
             responses = receive()
-            time.sleep(0.1)
+            time.sleep(1)
             continue
     
     print("Wall alignment complete")
@@ -266,8 +266,8 @@ def drive_adjustment():
     If too far from wall (3.5-5 inches), turn back toward it.
     """
     min_distance = 0.1
-    max_distance = 1.4
-    far_min = 4.4
+    max_distance = 1.2
+    far_min = 4.1
     far_max = 6.0
     turn_angle = 8  # degrees to turn for adjustment
     
@@ -399,7 +399,7 @@ def back_sensor_adjustment():
     Tolerance: 0.5 inches
     """
     target_14 = 14.0
-    target_26 = 26.0
+    target_26 = 25.0
     tolerance = 0.5
     max_attempts = 20
     
