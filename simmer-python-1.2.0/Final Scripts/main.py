@@ -125,8 +125,8 @@ if __name__ == "__main__":
             # BLOCK PICKUP SEQUENCE
             # ----------------------------------------------------------
             block_scan_pickup()
-            go_to_top_wall(rotate, read_u0, drive_forward)
-            
+            #go_to_top_wall(rotate, read_u0, drive_forward)
+            boot_and_align()
             print("Block pickup sequence complete!")
             
             # Use relocalized position
@@ -135,6 +135,7 @@ if __name__ == "__main__":
             
             print(f"\nBlock pickup complete!")
             print(f"Position: (col={pickup_end_cell[0]}, row={pickup_end_cell[1]}), facing {pickup_end_orientation}°")
+            
             break
             
         elif cmd == 'dropoff':
