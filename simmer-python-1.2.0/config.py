@@ -45,9 +45,9 @@ frame_end = ']'
 round_digits = 3
 
 # Block information
-block_position = [66, 5]        # Block starting location
+block_position = [16, 15]        # Block starting location
 block_rotation = 0              # Block rotation (deg)
-block_size = 3                  # Block side length in inches
+block_size = 2                  # Block side length in inches
 
 # Robot information
 robot_start_position = [54, 18]  # Robot starting location (in)

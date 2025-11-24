@@ -6,6 +6,7 @@ from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
 from automated_localization import auto_localize
 from localization_submodule import create_manual_localizer
+from execute_with_viz import execute_to_loading_zone, execute_to_dropoff_zone
 
 ROWS = len(MAZE_TO_LOADING)
 COLS = len(MAZE_TO_LOADING[0])
@@ -92,12 +93,12 @@ if __name__ == "__main__":
         print(f"✓ Path found! Length: {len(path)} cells")
         print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
 
-        visualize_maze(path)
+        visualize_maze(path, maze=MAZE_TO_LOADING)
         cmds = path_to_commands(path, start_angle=start_orientation)
-        print(cmds)
+        print(f"Commands: {cmds}")
         
-        execute_cmds_with_safety(cmds)
-        print("\n✓ Reached loading zone!")
+        # Execute with live visualization
+        execute_to_loading_zone(cmds, start_cell, goal_cell, path, MAZE_TO_LOADING)
     else:
         print("No path found to loading zone!")
         exit()
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     print("="*60)
     
     start_cell = pickup_end_cell  # Start from position after pickup
-    dropoff_cell = (2, 2)  ## CHANGE TO GIVEN DROP OFF ZONE
+    dropoff_cell = (5, 1)  ## CHANGE TO GIVEN DROP OFF ZONE
     start_orientation = pickup_end_orientation  # Use orientation after pickup
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
@@ -186,26 +187,25 @@ if __name__ == "__main__":
         print(f"✓ Path found! Length: {len(path)} cells")
         print(f"  Path: {' → '.join([f'({x},{y})' for x, y in path])}")
 
-        visualize_maze(path)
+        visualize_maze(path, maze=MAZE_TO_DROPOFF)
         cmds = path_to_commands(path, start_angle=start_orientation)
         print(f"Commands: {cmds}")
         
         if cmds:
-            # Execute navigation commands (no 'bd' removal for now)
-            execute_cmds_with_safety(cmds)
-            print("\n✓ Navigation to dropoff zone complete!")
+            # Execute with live visualization
+            execute_to_dropoff_zone(cmds, start_cell, dropoff_cell, path, MAZE_TO_DROPOFF)
         else:
             print("Already at dropoff location - no movement needed")
         
-        # DROP BLOCK HERW!!!!!!!!!!!!!!!!!!!
+        # DROP BLOCK HERE!
+        print("\n" + "="*60)
+        print("🔽 BLOCK DROP SEQUENCE")
+        print("="*60)
         
         #remove one last drive command from cmds to for dropoff, and add dropoff command
         cmds = cmds[:-1]
-        cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
+        cmds.append("bd")
         execute_cmds_with_safety(cmds)
-        # print("\nAll commands executed.")
-        #print("\n⚠ Block drop not implemented yet")
-        #print("   (Add block drop functionality here)")
         
     else:
         print("No path found to dropoff!")

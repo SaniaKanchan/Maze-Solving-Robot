@@ -180,6 +180,43 @@ def visualize_maze(path=None, maze=MAZE_TO_LOADING):
                 row_str += "· "  # Free
         print(row_str)
 
+
+def visualize_robot_position(robot_pos, goal_pos, path=None, maze=MAZE_TO_LOADING, message=""):
+    """
+    Print the maze showing robot's current position (R) and goal (G).
+    
+    Args:
+        robot_pos: (x, y) tuple of robot's current position
+        goal_pos: (x, y) tuple of goal position
+        path: Optional list of path cells to highlight
+        maze: 2D maze array
+        message: Optional message to display above maze
+    """
+    if message:
+        print(f"\n{message}")
+    
+    print(f"\nCurrent Position: ({robot_pos[0]}, {robot_pos[1]})")
+    print(f"Goal: ({goal_pos[0]}, {goal_pos[1]})")
+    print(f"  {ROWS}x{COLS} grid (R=robot, G=goal, •=path, █=obstacle, ·=free)\n")
+    
+    path_set = set(path) if path else set()
+    
+    for y in range(ROWS):
+        row_str = f"  Row {y}: "
+        for x in range(COLS):
+            if (x, y) == robot_pos:
+                row_str += "R "  # Robot position
+            elif (x, y) == goal_pos:
+                row_str += "G "  # Goal
+            elif (x, y) in path_set:
+                row_str += "• "  # Path
+            elif maze[y][x] == 1:
+                row_str += "█ "  # Obstacle
+            else:
+                row_str += "· "  # Free
+        print(row_str)
+    print()
+
 # --- Main execution ---
 if __name__ == "__main__":
     print("="*60)
