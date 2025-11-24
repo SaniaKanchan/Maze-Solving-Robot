@@ -4,6 +4,8 @@ from block_pickup import block_scan_pickup, go_to_top_wall, rotate, read_u0, dri
 import time
 from execute_cmd import execute_cmds_with_safety, boot_and_align
 from localization_interface import run_manual_localization
+from automated_localization import auto_localize
+from localization_submodule import create_manual_localizer
 
 ROWS = len(MAZE_TO_LOADING)
 COLS = len(MAZE_TO_LOADING[0])
@@ -19,14 +21,55 @@ if __name__ == "__main__":
     print("\nWall alignment and centering complete.\n")
     
     # ----------------------------------------------------------
-    # LOCALIZE ROBOT
+    # LOCALIZE ROBOT - Choose Method
     # ----------------------------------------------------------
-    loc_x, loc_y, loc_orientation = run_manual_localization(
-        MAZE_TO_DROPOFF, ROWS, COLS,
-        transmit, receive, packetize,
-        wall_thresh=6.0,
-        min_dist=0.5
-    )
+    print("\n" + "="*60)
+    print("LOCALIZATION METHOD")
+    print("="*60)
+    print("Choose localization method:")
+    print("  'auto'   - Automated localization (robot moves itself)")
+    print("  'manual' - Manual localization (you control movements)")
+    
+    while True:
+        choice = input("\n> ").strip().lower()
+        
+        if choice == 'auto':
+            print("\nStarting automated localization...")
+            # Create localizer for auto mode
+            localizer = create_manual_localizer(
+                MAZE_TO_DROPOFF, ROWS, COLS,
+                transmit, receive, packetize,
+                wall_thresh=6.0,
+                min_dist=0.5
+            )
+            
+            result = auto_localize(localizer, transmit, receive, packetize)
+            
+            if result and isinstance(result, tuple):
+                loc_x, loc_y, loc_orientation = result
+                break
+            else:
+                print("\nAutomated localization failed. Try manual mode.")
+                print("Type 'manual' to switch to manual localization")
+                continue
+                
+        elif choice == 'manual':
+            print("\nStarting manual localization...")
+            loc_x, loc_y, loc_orientation = run_manual_localization(
+                MAZE_TO_DROPOFF, ROWS, COLS,
+                transmit, receive, packetize,
+                wall_thresh=6.0,
+                min_dist=0.5
+            )
+            
+            if loc_x is not None:
+                break
+            else:
+                print("Manual localization cancelled.")
+                exit()
+        else:
+            print(f"Unknown choice: '{choice}'")
+            print("Type 'auto' or 'manual'")
     
     if loc_x is None:
         print("Localization failed or cancelled. Exiting.")
