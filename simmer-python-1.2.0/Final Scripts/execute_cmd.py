@@ -201,9 +201,9 @@ def execute_cmds_with_safety(cmds):
 if __name__ == "__main__":
     boot_and_align()
     
-    start_cell = (7, 3)
+    start_cell = (7, 0)
     goal_cell = (0, 2)
-    start_orientation = 270  # Degrees: 0=right, 90=down, 180=left, 270=up
+    start_orientation = 90  # Degrees: 0=right, 90=down, 180=left, 270=up
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
     print(f"Goal:  (col={goal_cell[0]}, row={goal_cell[1]})")
