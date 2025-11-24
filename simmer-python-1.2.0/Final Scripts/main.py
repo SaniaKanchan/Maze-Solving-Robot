@@ -154,10 +154,15 @@ if __name__ == "__main__":
         else:
             print("Already at dropoff location - no movement needed")
         
-        # TODO: Add block drop command here when implemented
-        # Example: execute_block_drop() or execute_cmds_with_safety(['bd'])
-        print("\n⚠ Block drop not implemented yet")
-        print("   (Add block drop functionality here)")
+        # DROP BLOCK HERW!!!!!!!!!!!!!!!!!!!
+        
+        #remove one last drive command from cmds to for dropoff, and add dropoff command
+        cmds = cmds[:-1]
+        cmds.append("bd")  # Replace "dropoff_command" with the actual command for dropoff
+        execute_cmds_with_safety(cmds)
+        # print("\nAll commands executed.")
+        #print("\n⚠ Block drop not implemented yet")
+        #print("   (Add block drop functionality here)")
         
     else:
         print("No path found to dropoff!")
