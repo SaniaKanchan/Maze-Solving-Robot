@@ -214,7 +214,7 @@ FRAMEEND = ']'
 CMD_DELIMITER = ','
 
 ### Set whether to use TCP (SimMeR) or serial (Arduino) ###
-SIMULATE = False
+SIMULATE = True
 
 ############### Initialize ##############
 ### Source to display

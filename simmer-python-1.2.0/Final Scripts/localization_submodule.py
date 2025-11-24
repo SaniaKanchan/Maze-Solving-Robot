@@ -61,7 +61,6 @@ class LocalizationSystem:
         self.candidate_history = []  # List of candidate sets from each reading
         self.movement_history = []   # List of movements: ('move', inches) or ('turn', degrees)
         self.cell_size = 12  # inches per cell
-        self.accumulated_distance = 0  # Tracks sub-cell movement accumulation
     
     def set_threshold(self, wall_thresh=None, min_dist=None):
         """Update threshold values."""

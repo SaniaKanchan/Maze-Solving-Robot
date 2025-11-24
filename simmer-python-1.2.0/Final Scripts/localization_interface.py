@@ -43,6 +43,7 @@ def run_manual_localization(maze, rows, cols, transmit_fn, receive_fn, packetize
     )
     
     current_pos = {'x': None, 'y': None, 'orientation': None}
+    movement_in_progress = False  # Track if robot is moving
     
     def show_help():
         print("""
@@ -124,6 +125,21 @@ Commands:
             elif cmd_lower == 'sensors':
                 localizer.read_sensors()
             elif cmd_lower == 'quick':
+                # Check if robot is still moving
+                if movement_in_progress:
+                    print("⚠ Movement in progress - checking if complete...")
+                    packet_check = packetize_fn('w0')
+                    transmit_fn(packet_check)
+                    time.sleep(0.1)
+                    check_resp, _ = receive_fn()
+                    
+                    if check_resp[0][1] == 'True':
+                        print("✓ Movement complete!")
+                        movement_in_progress = False
+                    else:
+                        print("⚠ Robot still moving - wait before localizing")
+                        continue
+                
                 result = localizer.quick_localize()
                 if result and isinstance(result, tuple):
                     x, y, o = result
@@ -145,6 +161,9 @@ Commands:
                         print(f"Response: {resp}")
                         # Only record if command succeeded
                         if len(resp[0]) >= 2 and resp[0][1] == 'True':
+                            movement_in_progress = True
+                            print("→ Movement started - wait for completion before 'quick'")
+                            
                             try:
                                 inches = float(cmd.split(':')[1])
                                 localizer.record_move(inches)
@@ -170,6 +189,9 @@ Commands:
                         print(f"Response: {resp}")
                         # Only record if command succeeded
                         if len(resp[0]) >= 2 and resp[0][1] == 'True':
+                            movement_in_progress = True
+                            print("→ Rotation started - wait for completion before 'quick'")
+                            
                             try:
                                 degrees = float(cmd.split(':')[1])
                                 localizer.record_turn(degrees)

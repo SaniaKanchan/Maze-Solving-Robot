@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # PATH PLANNING TO LOADING ZONE
     # ----------------------------------------------------------
     start_cell = (loc_x, loc_y)
-    goal_cell = (0, 2)
+    goal_cell = (0, 0)
     start_orientation = loc_orientation
 
     print(f"\nStart: (col={start_cell[0]}, row={start_cell[1]}) facing {start_orientation}°")
